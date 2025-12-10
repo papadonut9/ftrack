@@ -76,6 +76,10 @@
 
                 <div class="row g-2">
                     <div class="col-6">
+                        <label class="form-label small">Odometer (km)</label>
+                        <input type="number" id="odometer" class="form-control" placeholder="12500">
+                    </div>
+                    <div class="col-6">
                         <label class="form-label small">Trip Dist (km)</label>
                         <input type="number" id="tripDist" class="form-control" placeholder="120.5">
                     </div>
@@ -177,8 +181,27 @@
             }
         });
 
+        // --- Auto-Calculate Trip Distance ---
+        document.getElementById('odometer').addEventListener('blur', () => {
+            const currentOdo = parseInt(document.getElementById('odometer').value);
+            if (isNaN(currentOdo)) return;
+
+            const history = JSON.parse(localStorage.getItem('fuelHistory') || '[]');
+            // Find latest previous odometer reading
+            const latestEntry = history.find(entry => entry.odometer);
+
+            if (latestEntry && latestEntry.odometer) {
+                const prevOdo = parseInt(latestEntry.odometer);
+                if (currentOdo > prevOdo) {
+                    const dist = (currentOdo - prevOdo).toFixed(1);
+                    document.getElementById('tripDist').value = dist;
+                }
+            }
+        });
+
         // --- Save & Calculate ---
         function saveEntry() {
+            const odometer = document.getElementById('odometer').value ? parseInt(document.getElementById('odometer').value) : null;
             const tripDist = parseFloat(document.getElementById('tripDist').value);
             const dashAvg = parseFloat(document.getElementById('dashAvg').value);
             const fuelQty = parseFloat(document.getElementById('fuelQty').value);
@@ -200,6 +223,7 @@
                 dashAvg,
                 fuelQty,
                 fuelRate,
+                odometer,
                 realAvg,
                 diff
             };
@@ -228,7 +252,10 @@
                 <div class="card-body py-2">
                     <div class="d-flex justify-content-between border-bottom pb-1 mb-2">
                         <small class="text-muted">${item.date}</small>
-                        <small class="fw-bold text-primary">${item.tripDist} km</small>
+                        <div class="text-end">
+                            <small class="fw-bold text-primary d-block">${item.tripDist} km</small>
+                            ${item.odometer ? `<small class="text-muted" style="font-size: 0.75rem">ODO: ${item.odometer}</small>` : ''}
+                        </div>
                     </div>
                     <div class="row align-items-center text-center">
                         <div class="col-4 border-end">
@@ -310,6 +337,7 @@
         }
 
         function clearInputs() {
+            document.getElementById('odometer').value = '';
             document.getElementById('tripDist').value = '';
             document.getElementById('dashAvg').value = '';
             document.getElementById('fuelQty').value = '';
