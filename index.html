@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,202 +8,240 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
     <style>
-        body { padding-bottom: 80px; } /* Space for nav */
-        .camera-box { border: 2px dashed #ced4da; border-radius: 10px; padding: 20px; text-align: center; background: #f8f9fa; cursor: pointer; }
-        .camera-box.active { border-color: #0d6efd; background: #e9ecef; }
-        .diff-pos { color: #dc3545; font-weight: bold; } /* Bike lied (Optimistic) */
-        .diff-neg { color: #198754; font-weight: bold; } /* Bike under-reported */
-        .history-card { border-left: 5px solid #0d6efd; }
+        body {
+            padding-bottom: 80px;
+        }
+
+        .camera-box {
+            border: 2px dashed #ced4da;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+
+        .camera-box.active {
+            border-color: #0d6efd;
+            background: #e9ecef;
+        }
+
+        .diff-pos {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .diff-neg {
+            color: #198754;
+            font-weight: bold;
+        }
+
+        .history-card {
+            border-left: 5px solid #0d6efd;
+        }
     </style>
 </head>
+
 <body class="bg-light">
 
-<nav class="navbar navbar-dark bg-primary sticky-top mb-3">
-    <div class="container-fluid">
-        <span class="navbar-brand mb-0 h1">⛽ FuelLens Offline</span>
-        <button class="btn btn-sm btn-light" onclick="clearData()">Reset</button>
-    </div>
-</nav>
+    <nav class="navbar navbar-dark bg-primary sticky-top mb-3">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">⛽ FuelLens</span>
+        </div>
+    </nav>
 
-<div id="view-add" class="container">
-    
-    <div class="card shadow-sm mb-3">
-        <div class="card-body">
-            <h6 class="card-subtitle mb-2 text-muted">Scan Pump Display</h6>
-            <div class="camera-box" id="cameraTrigger">
-                <span id="cameraText">📸 Tap to Take Photo</span>
-                <input type="file" id="pumpPhoto" accept="image/*" capture="environment" hidden>
+    <div id="view-add" class="container">
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">1. Date & Scan</h6>
+
+                <label class="form-label small">Entry Date</label>
+                <input type="datetime-local" id="entryDate" class="form-control mb-3">
+
+                <div class="camera-box" id="cameraTrigger">
+                    <span id="cameraText">📸 Tap to Upload / Scan</span>
+                    <input type="file" id="pumpPhoto" accept="image/*" hidden>
+                </div>
+                <div id="ocrLoading" class="progress mt-2 d-none" style="height: 5px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                </div>
+                <small id="ocrStatus" class="d-block mt-1 text-muted fst-italic text-center"></small>
             </div>
-            <div id="ocrLoading" class="progress mt-2 d-none" style="height: 5px;">
-                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-3 text-muted">2. Trip Details</h6>
+
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label small">Trip Dist (km)</label>
+                        <input type="number" id="tripDist" class="form-control" placeholder="120.5">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Dash Avg (km/l)</label>
+                        <input type="number" id="dashAvg" class="form-control" placeholder="45.0">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Fuel Qty (L)</label>
+                        <input type="number" id="fuelQty" class="form-control" placeholder="2.55">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Rate (₹/L)</label>
+                        <input type="number" id="fuelRate" class="form-control" placeholder="102.5">
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button class="btn btn-primary btn-lg" onclick="saveEntry()">Calculate & Save</button>
+                </div>
             </div>
-            <small id="ocrStatus" class="d-block mt-1 text-muted fst-italic text-center"></small>
         </div>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h6 class="card-subtitle mb-3 text-muted">Trip Details</h6>
-            
-            <div class="row g-2">
-                <div class="col-6">
-                    <label class="form-label small">Trip Dist (km)</label>
-                    <input type="number" id="tripDist" class="form-control" placeholder="120.5">
-                </div>
-                <div class="col-6">
-                    <label class="form-label small">Dash Avg (km/l)</label>
-                    <input type="number" id="dashAvg" class="form-control" placeholder="45.0">
-                </div>
-                <div class="col-6">
-                    <label class="form-label small">Fuel Qty (L)</label>
-                    <input type="number" id="fuelQty" class="form-control" placeholder="2.55">
-                </div>
-                <div class="col-6">
-                    <label class="form-label small">Rate (₹/L)</label>
-                    <input type="number" id="fuelRate" class="form-control" placeholder="102.5">
-                </div>
-            </div>
-
-            <div class="d-grid gap-2 mt-4">
-                <button class="btn btn-primary btn-lg" onclick="saveEntry()">Calculate & Save</button>
+    <div id="view-history" class="container d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">History</h5>
+            <div>
+                <button class="btn btn-sm btn-outline-dark" onclick="exportData()">⬇ Export</button>
+                <button class="btn btn-sm btn-outline-dark" onclick="triggerImport()">⬆ Import</button>
+                <input type="file" id="importFile" accept=".json" hidden onchange="importData(this)">
             </div>
         </div>
+
+        <div id="historyList">
+        </div>
+
+        <div class="mt-4 mb-3">
+            <button class="btn btn-danger w-100 btn-sm" onclick="clearData()">⚠ Wipe All Data</button>
+        </div>
     </div>
-</div>
 
-<div id="view-history" class="container d-none">
-    <h5 class="mb-3">History</h5>
-    <div id="historyList">
-        <div class="text-center text-muted mt-5">No records found.</div>
-    </div>
-</div>
+    <nav class="navbar fixed-bottom navbar-light bg-white border-top">
+        <div class="container-fluid justify-content-around">
+            <button class="btn btn-link text-decoration-none" onclick="switchView('add')">➕ New</button>
+            <button class="btn btn-link text-decoration-none" onclick="switchView('history')">📜 History</button>
+        </div>
+    </nav>
 
-<nav class="navbar fixed-bottom navbar-light bg-white border-top">
-    <div class="container-fluid justify-content-around">
-        <button class="btn btn-link text-decoration-none" onclick="switchView('add')">➕ New</button>
-        <button class="btn btn-link text-decoration-none" onclick="switchView('history')">📜 History</button>
-    </div>
-</nav>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-<script>
-    // --- PWA Service Worker Registration ---
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
-        .then(() => console.log('Service Worker Registered'));
-    }
+        // --- Init: Set Date to Now ---
+        const now = new Date();
+        // Format to YYYY-MM-DDTHH:MM for datetime-local input
+        const localIso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+        document.getElementById('entryDate').value = localIso;
 
-    // --- DOM Elements ---
-    const cameraTrigger = document.getElementById('cameraTrigger');
-    const pumpPhoto = document.getElementById('pumpPhoto');
-    const ocrStatus = document.getElementById('ocrStatus');
-    const ocrLoading = document.getElementById('ocrLoading');
+        // --- DOM Elements ---
+        const cameraTrigger = document.getElementById('cameraTrigger');
+        const pumpPhoto = document.getElementById('pumpPhoto');
+        const ocrStatus = document.getElementById('ocrStatus');
+        const ocrLoading = document.getElementById('ocrLoading');
 
-    // --- OCR Logic ---
-    cameraTrigger.addEventListener('click', () => pumpPhoto.click());
+        // --- OCR Logic ---
+        cameraTrigger.addEventListener('click', () => pumpPhoto.click());
 
-    pumpPhoto.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+        pumpPhoto.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-        cameraTrigger.classList.add('active');
-        ocrLoading.classList.remove('d-none');
-        ocrStatus.innerText = "Processing image...";
+            cameraTrigger.classList.add('active');
+            ocrLoading.classList.remove('d-none');
+            ocrStatus.innerText = "Analyzing image...";
 
-        try {
-            const { data: { text } } = await Tesseract.recognize(file, 'eng');
-            console.log("OCR Result:", text);
-            
-            // Heuristic: Find numbers. 
-            // Often pumps show Volume, Price, and Total. We look for decimals.
-            const numbers = text.match(/\d+\.\d+/g); 
-            
-            if (numbers) {
-                // Heuristic: Fuel quantity is usually small (2-15L) compared to price (100+)
-                // This is a naive sort; users can correct it manually.
-                const potentialQty = numbers.find(n => parseFloat(n) < 20); 
-                const potentialRate = numbers.find(n => parseFloat(n) > 50 && parseFloat(n) < 200);
+            try {
+                const { data: { text } } = await Tesseract.recognize(file, 'eng');
+                console.log(text);
+                const numbers = text.match(/\d+\.\d+/g);
 
-                if(potentialQty) document.getElementById('fuelQty').value = potentialQty;
-                if(potentialRate) document.getElementById('fuelRate').value = potentialRate;
-                
-                ocrStatus.innerText = "Data extracted! Please verify.";
-            } else {
-                ocrStatus.innerText = "No clear numbers found. Enter manually.";
+                if (numbers) {
+                    // Heuristic logic to distinguish Qty from Price
+                    const potentialQty = numbers.find(n => parseFloat(n) < 20);
+                    const potentialRate = numbers.find(n => parseFloat(n) > 50 && parseFloat(n) < 200);
+
+                    if (potentialQty) document.getElementById('fuelQty').value = potentialQty;
+                    if (potentialRate) document.getElementById('fuelRate').value = potentialRate;
+
+                    ocrStatus.innerText = "Values detected. Please verify.";
+                } else {
+                    ocrStatus.innerText = "No numbers found. Enter manually.";
+                }
+            } catch (err) {
+                ocrStatus.innerText = "Error reading image.";
+            } finally {
+                ocrLoading.classList.add('d-none');
+                cameraTrigger.classList.remove('active');
             }
-        } catch (err) {
-            ocrStatus.innerText = "OCR Error. Enter manually.";
-        } finally {
-            ocrLoading.classList.add('d-none');
-            cameraTrigger.classList.remove('active');
-        }
-    });
+        });
 
-    // --- Core Logic ---
-    function saveEntry() {
-        const tripDist = parseFloat(document.getElementById('tripDist').value);
-        const dashAvg = parseFloat(document.getElementById('dashAvg').value);
-        const fuelQty = parseFloat(document.getElementById('fuelQty').value);
-        const fuelRate = parseFloat(document.getElementById('fuelRate').value);
+        // --- Save & Calculate ---
+        function saveEntry() {
+            const tripDist = parseFloat(document.getElementById('tripDist').value);
+            const dashAvg = parseFloat(document.getElementById('dashAvg').value);
+            const fuelQty = parseFloat(document.getElementById('fuelQty').value);
+            const fuelRate = parseFloat(document.getElementById('fuelRate').value);
+            const dateVal = document.getElementById('entryDate').value;
 
-        if (!tripDist || !fuelQty) {
-            alert("Please enter at least Trip Distance and Fuel Quantity.");
-            return;
-        }
+            if (!tripDist || !fuelQty) {
+                alert("Trip Distance and Fuel Quantity are required!");
+                return;
+            }
 
-        // Calculations
-        const realAvg = tripDist / fuelQty;
-        const diff = dashAvg ? (dashAvg - realAvg) : 0; // Positive = Bike Over-reported
+            const realAvg = tripDist / fuelQty;
+            const diff = dashAvg ? (dashAvg - realAvg) : 0;
 
-        const entry = {
-            id: Date.now(),
-            date: new Date().toLocaleString(),
-            tripDist,
-            dashAvg,
-            fuelQty,
-            fuelRate,
-            realAvg,
-            diff
-        };
+            const entry = {
+                id: Date.now(),
+                date: dateVal ? new Date(dateVal).toLocaleString() : new Date().toLocaleString(),
+                tripDist,
+                dashAvg,
+                fuelQty,
+                fuelRate,
+                realAvg,
+                diff
+            };
 
-        // Save to LocalStorage
-        const history = JSON.parse(localStorage.getItem('fuelHistory') || '[]');
-        history.unshift(entry); // Add to top
-        localStorage.setItem('fuelHistory', JSON.stringify(history));
+            const history = JSON.parse(localStorage.getItem('fuelHistory') || '[]');
+            history.unshift(entry);
+            localStorage.setItem('fuelHistory', JSON.stringify(history));
 
-        alert(`Saved! Real Mileage: ${realAvg.toFixed(2)} km/l`);
-        clearInputs();
-        switchView('history');
-    }
-
-    function renderHistory() {
-        const history = JSON.parse(localStorage.getItem('fuelHistory') || '[]');
-        const container = document.getElementById('historyList');
-        
-        if (history.length === 0) {
-            container.innerHTML = '<div class="text-center text-muted mt-5">No records found.</div>';
-            return;
+            alert(`Saved! Real Mileage: ${realAvg.toFixed(2)} km/l`);
+            clearInputs();
+            switchView('history');
         }
 
-        container.innerHTML = history.map(item => `
+        // --- History View ---
+        function renderHistory() {
+            const history = JSON.parse(localStorage.getItem('fuelHistory') || '[]');
+            const container = document.getElementById('historyList');
+
+            if (history.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted mt-5">No records found.</div>';
+                return;
+            }
+
+            container.innerHTML = history.map(item => `
             <div class="card history-card mb-2 shadow-sm">
                 <div class="card-body py-2">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between border-bottom pb-1 mb-2">
                         <small class="text-muted">${item.date}</small>
-                        <small class="fw-bold">Dist: ${item.tripDist}km</small>
+                        <small class="fw-bold text-primary">${item.tripDist} km</small>
                     </div>
-                    <div class="row mt-2 align-items-center">
+                    <div class="row align-items-center text-center">
                         <div class="col-4 border-end">
-                            <div class="small text-muted">Real</div>
-                            <div class="h5 mb-0">${item.realAvg.toFixed(1)}</div>
+                            <div class="small text-muted" style="font-size: 0.7rem">REAL</div>
+                            <div class="h6 mb-0">${item.realAvg.toFixed(1)}</div>
                         </div>
-                        <div class="col-4 border-end text-center">
-                            <div class="small text-muted">Dash</div>
-                            <div>${item.dashAvg ? item.dashAvg : '-'}</div>
+                        <div class="col-4 border-end">
+                            <div class="small text-muted" style="font-size: 0.7rem">DASH</div>
+                            <div class="h6 mb-0">${item.dashAvg ? item.dashAvg : '-'}</div>
                         </div>
-                        <div class="col-4 text-end">
-                            <div class="small text-muted">Diff</div>
-                            <div class="${item.diff > 0 ? 'diff-pos' : 'diff-neg'}">
+                        <div class="col-4">
+                            <div class="small text-muted" style="font-size: 0.7rem">DIFF</div>
+                            <div class="h6 mb-0 ${item.diff > 0 ? 'diff-pos' : 'diff-neg'}">
                                 ${item.diff > 0 ? '+' : ''}${item.diff.toFixed(1)}
                             </div>
                         </div>
@@ -210,35 +249,85 @@
                 </div>
             </div>
         `).join('');
-    }
-
-    // --- Utilities ---
-    function switchView(viewName) {
-        document.getElementById('view-add').classList.add('d-none');
-        document.getElementById('view-history').classList.add('d-none');
-        
-        if (viewName === 'add') {
-            document.getElementById('view-add').classList.remove('d-none');
-        } else {
-            renderHistory();
-            document.getElementById('view-history').classList.remove('d-none');
         }
-    }
 
-    function clearInputs() {
-        document.getElementById('tripDist').value = '';
-        document.getElementById('dashAvg').value = '';
-        document.getElementById('fuelQty').value = '';
-        document.getElementById('pumpPhoto').value = '';
-        document.getElementById('ocrStatus').innerText = '';
-    }
-    
-    function clearData() {
-        if(confirm("Delete all history?")) {
-            localStorage.removeItem('fuelHistory');
-            renderHistory();
+        // --- Import / Export Logic ---
+        function exportData() {
+            const data = localStorage.getItem('fuelHistory');
+            if (!data || data === '[]') {
+                alert("No data to export!");
+                return;
+            }
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `fuel_data_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
-    }
-</script>
+
+        function triggerImport() {
+            document.getElementById('importFile').click();
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData)) {
+                        if (confirm(`Found ${importedData.length} records. This will OVERWRITE your current data. Proceed?`)) {
+                            localStorage.setItem('fuelHistory', JSON.stringify(importedData));
+                            renderHistory();
+                            alert("Data imported successfully!");
+                        }
+                    } else {
+                        alert("Invalid JSON format.");
+                    }
+                } catch (err) {
+                    alert("Error reading file.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- Utilities ---
+        function switchView(viewName) {
+            document.getElementById('view-add').classList.add('d-none');
+            document.getElementById('view-history').classList.add('d-none');
+
+            if (viewName === 'add') {
+                document.getElementById('view-add').classList.remove('d-none');
+            } else {
+                renderHistory();
+                document.getElementById('view-history').classList.remove('d-none');
+            }
+        }
+
+        function clearInputs() {
+            document.getElementById('tripDist').value = '';
+            document.getElementById('dashAvg').value = '';
+            document.getElementById('fuelQty').value = '';
+            document.getElementById('pumpPhoto').value = '';
+            document.getElementById('ocrStatus').innerText = '';
+            // Reset date to current
+            const now = new Date();
+            const localIso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            document.getElementById('entryDate').value = localIso;
+        }
+
+        function clearData() {
+            if (confirm("Are you sure? This will delete all history locally.")) {
+                localStorage.removeItem('fuelHistory');
+                renderHistory();
+            }
+        }
+    </script>
 </body>
+
 </html>
